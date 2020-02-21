@@ -1,6 +1,9 @@
 package schema;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import java.util.HashMap;
 
 /**
@@ -20,10 +23,11 @@ public class Piece extends BaseEntity
         Black,White
     }
 
+    @Enumerated(EnumType.STRING)
     public final Type type;
-
+    @Enumerated(EnumType.STRING)
     public final Color color;
-
+    @Column
     public final int counter;
 
     private static HashMap<Type,Integer> whiteCounter = new HashMap<>();

@@ -1,9 +1,16 @@
 importPackage(Packages.schema);
 
+//<editor-fold desc="Events">
 var fenEvent = bp.EventSet("", function (e) {
     return e.name.equals("ParseFen");
 });
 
+var doneEvent = bp.EventSet("", function (e) {
+    return e.name.equals("Done Populate");
+});
+//</editor-fold>
+
+//<editor-fold desc="Cells Functions">
 function registerCellsQueries()
 {
     for (var i = 0; i < 8; i++)
@@ -21,41 +28,20 @@ function registerCellsQueries()
 
 registerCellsQueries();
 
-var doneEvent = bp.EventSet("", function (e) {
-    return e.name.equals("Done Populate");
-});
-
 function getCell(i,j){
     return CTX.getContextInstances("Cell["+i+","+j+"]").get(0);
 }
-
-bp.registerBThread("Test",function ()
-{
-    bp.sync({waitFor:doneEvent});
-
-    var c = CTX.getContextInstances("NotEmptyCell").get(0);
-    bp.log.info(c);
-
-    bp.sync({ request: CTX.UpdateEvent("UpdateCell",{cell:c, piece: null})});
-
-    bp.log.info(CTX.getContextInstances("NotEmptyCell").get(0));
-});
+//</editor-fold>
 
 bp.registerBThread("Populate",function ()
 {
     // cells
-    var board = [];
     for(var row = 0; row < 8; row++)
     {
-        var r = [];
-
         for(var col = 0; col < 8; col++)
         {
-            var cell = new Cell(row,col);
-            bp.sync({ request: CTX.InsertEvent(cell)});
-            r.push(cell);
+            bp.sync({ request: CTX.InsertEvent(new Cell(row,col))});
         }
-        board.push(r);
     }
 
     // pieces
@@ -64,9 +50,27 @@ bp.registerBThread("Populate",function ()
         var toParse = bp.sync({waitFor:fenEvent}).data;
 
         // delete old
+        var nonEmpty = CTX.getContextInstances("NotEmptyCell");
+        for(var i = 0; i < nonEmpty.size(); i++)
+        {
+            bp.sync({ request: CTX.UpdateEvent("UpdateCell",{cell:nonEmpty.get(i), piece: null})});
+        }
 
         // populate new
-        parseBoard(toParse.toString(),board);
+        parseBoard(toParse.toString());
+
+        // prepare board for debug and print
+        var board = [];
+
+        for(var row = 0; row < 8; row++)
+        {
+            var r = [];
+            for(var col = 0; col < 8; col++)
+            {
+                r.push(getCell(row,col));
+            }
+            board.push(r);
+        }
 
         bp.sync({request:bp.Event("Done Populate",board)});
     }
@@ -107,12 +111,14 @@ function parseBoard(toParse)
                 if(piece != null)
                 {
                     // update cell to store piece
+                    var cell = getCell(row,column);
                     bp.sync({ request: CTX.InsertEvent(piece)});
-                    bp.sync({ request: CTX.UpdateEvent("UpdateCell",{cell:getCell(row,column++), piece: piece})});
+                    bp.sync({ request: CTX.UpdateEvent("UpdateCell",{cell:cell, piece: piece})});
                 }
-                else column++;
+
+                column++;
             }
-            else column++;
+            else column += toNum;
         }
 
         column = 0;
