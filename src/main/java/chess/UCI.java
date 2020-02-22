@@ -1,10 +1,12 @@
+package chess;
+
 import il.ac.bgu.cs.bp.bpjs.context.ContextService;
 import il.ac.bgu.cs.bp.bpjs.execution.listeners.BProgramRunnerListenerAdapter;
 import il.ac.bgu.cs.bp.bpjs.model.BEvent;
 import il.ac.bgu.cs.bp.bpjs.model.BProgram;
 import org.mozilla.javascript.NativeArray;
-import schema.Cell;
-import schema.Piece;
+import chess.schema.Cell;
+import chess.schema.Piece;
 
 import java.util.Scanner;
 
@@ -14,14 +16,14 @@ import java.util.Scanner;
  */
 public class UCI extends Thread
 {
-    BProgram program;
-    Cell[][] board;
+    private BProgram program;
+    private Cell[][] board;
 
     @Override
     public void run()
     {
         ContextService contextService = ContextService.getInstance();
-        contextService.initFromResources("ContextDB","populateDB.js");
+        contextService.initFromResources("ContextDB","populateDB.js","contextProgram.js");
 
         contextService.addListener(new BProgramRunnerListenerAdapter() {
             @Override
@@ -42,6 +44,14 @@ public class UCI extends Thread
 
                     //ready = true;
                     //moveCount = 0;
+                }
+                else if(theEvent.name.equals("StateUpdate"))
+                {
+                    // normal
+                    Move theMove = (Move)theEvent.getData();
+                    board[theMove.target.row][theMove.target.col].piece = board[theMove.source.row][theMove.source.col].piece;
+                    board[theMove.source.row][theMove.source.col].piece = null;
+                    print();
                 }
             }
         });
@@ -68,12 +78,30 @@ public class UCI extends Thread
 
             if(line.equals("quit")) break;
             else if(line.equals("print")) print();
+            else if(line.startsWith("position")) playMove(line);
             else if(line.equals("start")) this.program.enqueueExternalEvent(new BEvent("ParseFen",normalStart));
         }
     }
 
+    public void playMove(String input)
+    {
+        String[] tokens = input.split(" ");
+        if(tokens.length <= 1) return;
+
+        String lastToken = tokens[tokens.length - 1];
+
+        Cell source = board[lastToken.charAt(1) - '1'][lastToken.charAt(0) - 'a'];
+        Cell target = board[lastToken.charAt(3) - '1'][lastToken.charAt(2) - 'a'];
+
+        Move move = new Move(source,target);
+
+        this.program.enqueueExternalEvent(move);
+    }
+
     public void print()
     {
+        if(board == null) return;
+
         String s = "";
 
         for(int row = board.length - 1; row >= 0 ; row--)

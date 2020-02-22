@@ -1,12 +1,8 @@
-importPackage(Packages.schema);
+importPackage(Packages.chess.schema);
 
 //<editor-fold desc="Events">
 var fenEvent = bp.EventSet("", function (e) {
     return e.name.equals("ParseFen");
-});
-
-var doneEvent = bp.EventSet("", function (e) {
-    return e.name.equals("Done Populate");
 });
 //</editor-fold>
 
@@ -21,7 +17,6 @@ function registerCellsQueries()
                 "row": i,
                 "col": j
             });
-
         }
     }
 }
@@ -30,6 +25,11 @@ registerCellsQueries();
 
 function getCell(i,j){
     return CTX.getContextInstances("Cell["+i+","+j+"]").get(0);
+}
+
+function getCellByPiece(piece)
+{
+    return CTX.getContextInstances("Piece[" + piece + "]").get(0);
 }
 //</editor-fold>
 
@@ -113,6 +113,9 @@ function parseBoard(toParse)
                     // update cell to store piece
                     var cell = getCell(row,column);
                     bp.sync({ request: CTX.InsertEvent(piece)});
+
+                    CTX.registerParameterizedContextQuery("PieceCell", "Piece[" + piece + "]", {"piece": piece});
+
                     bp.sync({ request: CTX.UpdateEvent("UpdateCell",{cell:cell, piece: piece})});
                 }
 

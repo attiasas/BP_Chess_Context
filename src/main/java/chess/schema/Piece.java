@@ -1,9 +1,6 @@
-package schema;
+package chess.schema;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
+import javax.persistence.*;
 import java.util.HashMap;
 
 /**
@@ -11,6 +8,10 @@ import java.util.HashMap;
  * Description:
  */
 @Entity
+@NamedQueries(value = {
+        //@NamedQuery(name = "RookCell", query = "SELECT c FROM Cell c WHERE c.piece IS NOT NULL AND c.piece.type = 'Rook'"),
+        @NamedQuery(name = "Pawns", query = "SELECT p FROM Piece p WHERE p.type = 'Pawn'")
+})
 public class Piece extends BaseEntity
 {
     public enum Type
@@ -24,8 +25,10 @@ public class Piece extends BaseEntity
     }
 
     @Enumerated(EnumType.STRING)
+    @Column
     public final Type type;
     @Enumerated(EnumType.STRING)
+    @Column
     public final Color color;
     @Column
     public final int counter;

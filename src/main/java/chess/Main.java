@@ -1,6 +1,4 @@
-import il.ac.bgu.cs.bp.bpjs.context.ContextService;
-import il.ac.bgu.cs.bp.bpjs.model.BProgram;
-
+package chess;
 
 /**
  * Created By: Assaf, On 14/02/2020

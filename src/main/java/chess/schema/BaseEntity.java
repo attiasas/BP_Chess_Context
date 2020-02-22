@@ -1,4 +1,4 @@
-package schema;
+package chess.schema;
 
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
