@@ -1,4 +1,4 @@
-importPackage(Packages.chess.schema);
+importPackage(Packages.chess.DAL.schema);
 
 //<editor-fold desc="Events">
 var fenEvent = bp.EventSet("", function (e) {
@@ -112,11 +112,12 @@ function parseBoard(toParse)
                 {
                     // update cell to store piece
                     var cell = getCell(row,column);
-                    bp.sync({ request: CTX.InsertEvent(piece)});
+                    bp.sync({ request: CTX.TransactionEvent(
+                            CTX.InsertEvent(piece),
+                            CTX.UpdateEvent("UpdateCell",{cell:cell, piece: piece})
+                        )});
 
                     CTX.registerParameterizedContextQuery("PieceCell", "Piece[" + piece + "]", {"piece": piece});
-
-                    bp.sync({ request: CTX.UpdateEvent("UpdateCell",{cell:cell, piece: piece})});
                 }
 
                 column++;

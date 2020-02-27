@@ -1,4 +1,4 @@
-package chess.schema;
+package chess.DAL.schema;
 
 import javax.persistence.*;
 import java.util.HashMap;
@@ -9,7 +9,9 @@ import java.util.HashMap;
  */
 @Entity
 @NamedQueries(value = {
-        //@NamedQuery(name = "RookCell", query = "SELECT c FROM Cell c WHERE c.piece IS NOT NULL AND c.piece.type = 'Rook'"),
+        @NamedQuery(name = "RemovePiece", query = "DELETE FROM Piece p WHERE p = :piece"),
+        @NamedQuery(name = "WhitePieces", query = "SELECT p FROM Piece p WHERE p.color = 'White'"),
+        @NamedQuery(name = "BlackPieces", query = "SELECT p FROM Piece p WHERE p.color = 'Black'"),
         @NamedQuery(name = "Pawns", query = "SELECT p FROM Piece p WHERE p.type = 'Pawn'")
 })
 public class Piece extends BaseEntity

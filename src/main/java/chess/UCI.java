@@ -1,20 +1,23 @@
 package chess;
 
+import chess.DAL.EffectFunction.Move;
 import il.ac.bgu.cs.bp.bpjs.context.ContextService;
 import il.ac.bgu.cs.bp.bpjs.execution.listeners.BProgramRunnerListenerAdapter;
 import il.ac.bgu.cs.bp.bpjs.model.BEvent;
 import il.ac.bgu.cs.bp.bpjs.model.BProgram;
 import org.mozilla.javascript.NativeArray;
-import chess.schema.Cell;
-import chess.schema.Piece;
+import chess.DAL.schema.Cell;
+import chess.DAL.schema.Piece;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
 /**
  * Created By: Assaf, On 16/02/2020
  * Description:
  */
-public class UCI extends Thread
+public class UCI implements Runnable
 {
     private BProgram program;
     private Cell[][] board;
@@ -23,7 +26,9 @@ public class UCI extends Thread
     public void run()
     {
         ContextService contextService = ContextService.getInstance();
-        contextService.initFromResources("ContextDB","populateDB.js","contextProgram.js");
+        contextService.initFromResources("ContextDB","populateDB.js", "game_rules_context.js");
+
+        contextService.addListener(new Move());
 
         contextService.addListener(new BProgramRunnerListenerAdapter() {
             @Override
@@ -45,12 +50,12 @@ public class UCI extends Thread
                     //ready = true;
                     //moveCount = 0;
                 }
-                else if(theEvent.name.equals("StateUpdate"))
+                else if(theEvent.name.equals("Move"))
                 {
+                    Map<String, Cell> data = (Map<String, Cell>) theEvent.maybeData;
                     // normal
-                    Move theMove = (Move)theEvent.getData();
-                    board[theMove.target.row][theMove.target.col].piece = board[theMove.source.row][theMove.source.col].piece;
-                    board[theMove.source.row][theMove.source.col].piece = null;
+                    board[data.get("target").row][data.get("target").col].piece = board[data.get("source").row][data.get("source").col].piece;
+                    board[data.get("source").row][data.get("source").col].piece = null;
                     print();
                 }
             }
@@ -93,7 +98,10 @@ public class UCI extends Thread
         Cell source = board[lastToken.charAt(1) - '1'][lastToken.charAt(0) - 'a'];
         Cell target = board[lastToken.charAt(3) - '1'][lastToken.charAt(2) - 'a'];
 
-        Move move = new Move(source,target);
+        BEvent move = new BEvent("Move",new HashMap<>() {{
+            put("source", source);
+            put("target", target);
+        }});
 
         this.program.enqueueExternalEvent(move);
     }

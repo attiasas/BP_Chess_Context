@@ -1,8 +1,4 @@
-importPackage(Packages.schema);
-importPackage(Packages.chess);
-
-var autoMovesBlack = true;
-var autoMovesWhite = true;
+importPackage(Packages.chess.DAL);
 
 //<editor-fold desc="EventSet">
 
@@ -11,40 +7,42 @@ var donePopulationEvent = bp.EventSet("Start Event", function (e) {
 });
 
 //<editor-fold desc="Moves">
-var moves = bp.EventSet("Moves", function (e) {
-    return e instanceof Move;
+var moves = bp.EventSet("Moves", function (e)
+{
+   return e.name.equals("Move");
 });
 
 var whiteMoves = bp.EventSet("White Moves",function (e) {
-    return moves.contains(e) && (e.source.piece !== null) && (Piece.Color.White.equals(e.source.piece.color));
+    return moves.contains(e) && (e.data.source.piece !== null) && (Piece.Color.White.equals(e.data.source.piece.color));
 });
 
 var blackMoves = bp.EventSet("black Moves",function (e) {
-    return moves.contains(e) && (e.source.piece !== null) && (Piece.Color.Black.equals(e.source.piece.color));
+    return moves.contains(e) && (e.data.source.piece !== null) && (Piece.Color.Black.equals(e.data.source.piece.color));
 });
 
 var outBoundsMoves = bp.EventSet("",function (e) {
-    return moves.contains(e) && (e.source.row < 0 || e.source.row > 7 || e.source.column < 0 || e.source.column > 7 || e.target.row < 0 || e.target.row > 7 || e.target.column < 0 || e.target.column > 7);
+    return moves.contains(e) && (e.data.source.row < 0 || e.data.source.row > 7 || e.data.source.col < 0 || e.data.source.col > 7 || e.data.target.row < 0 || e.data.target.row > 7 || e.data.target.col < 0 || e.data.target.col > 7);
 });
 
 var staticMoves = bp.EventSet("Non Moves",function (e) {
-    return moves.contains(e) && (e.source.equals(e.target) || e.source.piece === null);
-});
-//</editor-fold>
-
-//<editor-fold desc="Update DB">
-var allExceptStateUpdate = bp.EventSet("", function (e) {
-    return moves.contains(e) && !stateUpdate.contains(e);
+    return moves.contains(e) && (e.data.source.equals(e.data.target) || e.data.source.piece === null);
 });
 
-var stateUpdate = bp.EventSet("",function (e) {
-    return e.name.equals("StateUpdate");
+var sameTeamCaptureMoves = bp.EventSet("Same Team Capture Moves",function (e)
+{
+    return moves.contains(e) && (e.data.source.piece !== null) && (e.data.target.piece !== null) && (e.data.source.piece.color.equals(e.data.target.piece.color));
 });
+
 //</editor-fold>
 
 //</editor-fold>
 
 //<editor-fold desc="Helper Functions">
+function getMove(source,target)
+{
+    return bp.Event("Move",{source:source,target:target});
+}
+
 function inRange(row,column)
 {
     return row >= 0 && row < 8 && column >= 0 && column < 8;
@@ -67,7 +65,7 @@ function allMovesFromSourceExcept(source, exceptGroup)
                 {
                     if(move.equals(exceptGroup[i])) found = true;
                 }
-                bp.log.info(move + " | " + found);
+                
                 if(!found) options.push(move);
             }
         }
@@ -79,39 +77,29 @@ function allMovesFromSourceExcept(source, exceptGroup)
 
 //<editor-fold desc="General Rules">
 
-// Rule : Turn Base Game, White Starts
+// Requiremnet : Turn Base Game, White Starts
 bp.registerBThread("EnforceTurns",function ()
 {
     while (true)
     {
         bp.sync({waitFor:whiteMoves,block:blackMoves});
-        bp.sync({waitFor:stateUpdate, block:allExceptStateUpdate});
 
         bp.sync({waitFor:blackMoves,block:whiteMoves});
-        bp.sync({waitFor:stateUpdate, block:allExceptStateUpdate});
     }
 });
 
-bp.registerBThread("UpdateDBAfterMove", function ()
+// Requiremnet : A piece moves to a vacant square except when capturing an opponent's piece
+bp.registerBThread("Only Capture Enemies", function ()
 {
-    while (true)
-    {
-        var move = bp.sync({waitFor:moves});
-
-        bp.sync({request: CTX.UpdateEvent("UpdateCell",{cell:move.target, piece: move.source.piece}) });
-        bp.sync({request: CTX.UpdateEvent("UpdateCell",{cell:move.source, piece: null}) });
-
-        bp.sync({request:bp.Event("StateUpdate",move)});
-    }
+    bp.sync({block:sameTeamCaptureMoves});
 });
 
-
-// Rule : Moving Pieces only inside the board bounds.
+// Requiremnet : Moving Pieces only inside the board bounds.
 bp.registerBThread("Movement in bounds",function ()
 {
     bp.sync({block:outBoundsMoves});
 });
-// Rule : Move is allowed only if source has piece on it.
+// Requiremnet : Move is allowed only if source has piece on it.
 bp.registerBThread("Enforce Movement to a new cell", function ()
 {
     bp.sync({block:staticMoves});
@@ -119,11 +107,25 @@ bp.registerBThread("Enforce Movement to a new cell", function ()
 //</editor-fold>
 
 //<editor-fold desc="Pawn Rules">
-CTX.subscribe("Pawn Movement Restriction Rule", "PawnCell", function (pawnCell)
-{
+CTX.subscribe("Move forward", "Pawns", function (pawn) {
+    var end = CTX.AnyContextEndedEvent("Pawns",pawn);
+    var forward = pawn.color.equals(Piece.Color.Black) ? -1 : 1;
+
+    bp.sync({waitFor:donePopulationEvent});
+
     while (true)
     {
-        bp.sync({block:allMovesFromSourceExcept(pawnCell,pawnMoves(pawnCell)), waitFor:stateUpdate});
+        var currentCell = getCellByPiece(pawn);
+        var targetCell = getCell(currentCell.row + forward,currentCell.col);
+
+        if(targetCell.piece == null)
+        {
+            bp.sync({request: getMove(currentCell,targetCell),
+            waitFor: moves,
+            interrupt:end});
+        } else {
+            bp.sync({waitFor: moves, interrupt:end});
+        }
     }
 });
 

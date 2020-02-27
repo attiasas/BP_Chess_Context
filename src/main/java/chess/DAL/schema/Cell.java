@@ -1,4 +1,4 @@
-package chess.schema;
+package chess.DAL.schema;
 
 import javax.persistence.*;
 
@@ -11,11 +11,16 @@ import javax.persistence.*;
         @NamedQuery(name = "Cell", query = "SELECT c FROM Cell c"),
         @NamedQuery(name = "EmptyCell", query = "SELECT c FROM Cell c WHERE c.piece IS NULL"),
         @NamedQuery(name = "NotEmptyCell", query = "SELECT c FROM Cell c WHERE c.piece IS NOT NULL"),
-        @NamedQuery(name = "UpdateCell", query = "Update Cell c set c.piece=:piece where c=:cell"),
+        @NamedQuery(name = "WhiteCell", query = "SELECT c FROM Cell c WHERE c.piece IS NOT NULL AND c.piece.color = 'White'"),
+        @NamedQuery(name = "BlackCell", query = "SELECT c FROM Cell c WHERE c.piece IS NOT NULL AND c.piece.color = 'Black'"),
         @NamedQuery(name = "SpecificCell", query = "SELECT c FROM Cell c WHERE c.row=:row AND c.col=:col"),
-        // -----------------------------------------
         @NamedQuery(name = "PieceCell", query = "SELECT c FROM Cell c WHERE c.piece = :piece"),
-        @NamedQuery(name = "PawnCell", query = "SELECT c FROM Cell c WHERE c.piece IS NOT NULL AND c.piece.type = 'Pawn'")
+        @NamedQuery(name = "PawnCell", query = "SELECT c FROM Cell c WHERE c.piece IS NOT NULL AND c.piece.type = 'Pawn'"),
+        //-------------------------
+        @NamedQuery(name = "UpdateCell", query = "Update Cell c set c.piece=:piece where c=:cell"),
+})
+@NamedNativeQueries(value = {
+
 })
 public class Cell extends BaseEntity
 {

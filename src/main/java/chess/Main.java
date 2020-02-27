@@ -6,10 +6,11 @@ package chess;
  */
 public class Main
 {
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) throws InterruptedException {
         UCI uci = new UCI();
 
-        uci.start();
+        Thread t = new Thread(uci);
+        t.start();
+        t.join();
     }
 }

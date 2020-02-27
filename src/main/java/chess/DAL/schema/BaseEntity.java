@@ -1,4 +1,6 @@
-package chess.schema;
+package chess.DAL.schema;
+
+import il.ac.bgu.cs.bp.bpjs.execution.listeners.BProgramRunnerListenerAdapter;
 
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
